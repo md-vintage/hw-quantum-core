@@ -8,13 +8,30 @@ import argh
 
 
 # =====
+def get_cpu_percent():
+    import psutil
+    st = psutil.cpu_times_percent()
+    user = st.user - st.guest
+    nice = st.nice - st.guest_nice
+    idle_all = st.idle + st.iowait
+    system_all = st.system + st.irq + st.softirq
+    virtual = st.guest + st.guest_nice
+    total = max(1, user + nice + system_all + idle_all + st.steal + virtual)
+    return (
+        st.nice / total * 100
+        + st.user / total  * 100
+        + system_all / total * 100
+        + (st.steal + st.guest) / total * 100
+    )
+
+
 def get_local_stat():
     import psutil
     with open("/proc/loadavg") as loadavg_file:
         averages = loadavg_file.readline().split()[:3]
         averages = tuple( float(avg) * 10 for avg in averages )
         return {
-            "cpu":  psutil.cpu_percent(),
+            "cpu":  get_cpu_percent(),
             "mem":  psutil.phymem_usage().percent,
             "la1":  averages[0],
             "la5":  averages[1],
