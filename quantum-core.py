@@ -5,7 +5,6 @@ import struct
 import time
 
 import argh
-import serial
 
 
 # =====
@@ -24,6 +23,7 @@ def get_local_stat():
 
 class QuantumCore:
     def __init__(self, device):
+        import serial
         self._tty = serial.Serial(device, 115200)
 
     def send(self, cpu, mem, la1, la5, la15):
