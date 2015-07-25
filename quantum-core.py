@@ -32,7 +32,7 @@ def get_local_stat():
         averages = tuple( float(avg) * 10 for avg in averages )
         return {
             "cpu":  get_cpu_percent(),
-            "mem":  psutil.phymem_usage().percent,
+            "mem":  psutil.virtual_memory().percent,
             "la1":  averages[0],
             "la5":  averages[1],
             "la15": averages[2],
