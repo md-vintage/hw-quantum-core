@@ -19,7 +19,7 @@ def get_cpu_percent():
     total = max(1, user + nice + system_all + idle_all + st.steal + virtual)
     return (
         st.nice / total * 100
-        + st.user / total  * 100
+        + st.user / total * 100
         + system_all / total * 100
         + (st.steal + st.guest) / total * 100
     )
@@ -38,14 +38,22 @@ def get_local_stat():
             "la15": averages[2],
         }
 
+
 class QuantumCore:
     def __init__(self, device):
         import serial
         self._tty = serial.Serial(device, 115200)
 
     def send(self, cpu, mem, la1, la5, la15):
-        values = map(self._make_byte, (cpu, mem, la1, la5, la15))
-        self._tty.write(struct.pack("<ccccc", *values))
+        self._send_command([1, cpu])
+        self._send_command([2, mem])
+        self._send_command([3, la1])
+        self._send_command([4, la5])
+        self._send_command([5, la15])
+
+    def _send_command(self, items):
+        items = list(items) + [0] * (9 - len(items))
+        self._tty.write(struct.pack("<ccccccccc", *map(self._make_byte, items)))
 
     def _make_byte(self, value) :
         return bytes([int(value)])
@@ -59,6 +67,7 @@ def run_local(device=None, interval=None):
     while True:
         qc.send(**get_local_stat())
         time.sleep(interval)
+
 
 @argh.arg("--url", default="http://localhost:8080")
 @argh.arg("--device", default="/dev/ttyACM0")
@@ -78,6 +87,7 @@ def run_remote(url=None, device=None, interval=None):
         qc.send(**response.json())
         time.sleep(interval)
 
+
 @argh.arg("--port", default=8080)
 def run_server(port=None):
     import json
@@ -92,14 +102,16 @@ def run_server(port=None):
 
     httpd.serve_forever()
 
+
 def main():
     parser = argh.ArghParser(description="Quantum Core -- hardware monitoring")
     parser.add_commands((
-            run_local,
-            run_remote,
-            run_server,
-        ))
+        run_local,
+        run_remote,
+        run_server,
+    ))
     parser.dispatch()
+
 
 if __name__ == "__main__":
     main()

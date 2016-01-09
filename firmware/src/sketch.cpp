@@ -19,11 +19,11 @@ inline float fmap(float x, float in_min, float in_max, float out_min, float out_
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-inline void displayPercent(int pin, unsigned char percent) {
+void displayPercent(int pin, unsigned char percent) {
 	analogWrite(pin, map(percent, 0, 100, 0, 255));
 }
 
-inline unsigned displayAverage(int pin, int max_pin, unsigned char avg) {
+void displayAverage(int pin, int max_pin, unsigned char avg) {
 	if ( avg > 100 ) {
 		digitalWrite(max_pin, HIGH);
 		avg = 100;
@@ -33,16 +33,20 @@ inline unsigned displayAverage(int pin, int max_pin, unsigned char avg) {
 	analogWrite(pin, (int) fmap(((float) avg) / 10.0, 0.0, 10.0, 0.0, 255.0));
 }
 
+bool processCommand(const unsigned char *cmd) {
+	switch(cmd[0]) {
+		case 0: Serial.println("quantum-core"); return false;
+		case 1: displayPercent(CPU_PIN, cmd[1]); return true;
+		case 2: displayPercent(MEM_PIN, cmd[1]); return true;
+		case 3: displayAverage(LA1_PIN, MAX_LA1_PIN, cmd[1]); return true;
+		case 4: displayAverage(LA5_PIN, MAX_LA5_PIN, cmd[1]); return true;
+		case 5: displayAverage(LA15_PIN, MAX_LA15_PIN, cmd[1]); return true;
+		default: break;
+	}
+	return false;
+}
 
-void setup() {
-	Serial.begin(SERIAL_SPEED);
-
-	pinMode(ACTIVE_PIN, OUTPUT);
-	pinMode(MAX_LA1_PIN, OUTPUT);
-	pinMode(MAX_LA5_PIN, OUTPUT);
-	pinMode(MAX_LA15_PIN, OUTPUT);
-
-	// Power-up demo
+void demo() {
 	displayPercent(CPU_PIN, 100);
 	delay(300);
 	displayPercent(MEM_PIN, 100);
@@ -64,18 +68,29 @@ void setup() {
 	displayPercent(CPU_PIN, 0);
 }
 
+void setup() {
+	Serial.begin(SERIAL_SPEED);
+
+	pinMode(ACTIVE_PIN, OUTPUT);
+	pinMode(MAX_LA1_PIN, OUTPUT);
+	pinMode(MAX_LA5_PIN, OUTPUT);
+	pinMode(MAX_LA15_PIN, OUTPUT);
+
+	demo();
+}
+
 void loop() {
 	static unsigned long last_data_time = 0;
+	unsigned char cmd[9];
 
-	if ( Serial.available() >= 5 ) {
-		displayPercent(CPU_PIN, Serial.read());
-		displayPercent(MEM_PIN, Serial.read());
-		displayAverage(LA1_PIN, MAX_LA1_PIN, Serial.read());
-		displayAverage(LA5_PIN, MAX_LA5_PIN, Serial.read());
-		displayAverage(LA15_PIN, MAX_LA15_PIN, Serial.read());
-
-		last_data_time = millis();
-		digitalWrite(ACTIVE_PIN, HIGH);
+	if ( Serial.available() >= 9 ) {
+		for (int count = 0; count < 9; ++count) {
+			cmd[count] = Serial.read();
+		}
+		if (processCommand(cmd)) {
+			last_data_time = millis();
+			digitalWrite(ACTIVE_PIN, HIGH);
+		}
 	}
 
 	unsigned long current_time = millis();
