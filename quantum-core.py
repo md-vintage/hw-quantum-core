@@ -45,11 +45,11 @@ class QuantumCore:
         self._tty = serial.Serial(device, 115200)
 
     def send(self, cpu, mem, la1, la5, la15):
-        self._send_command([1, cpu])
-        self._send_command([2, mem])
-        self._send_command([3, la1])
-        self._send_command([4, la5])
-        self._send_command([5, la15])
+        self._send_command([10, cpu])
+        self._send_command([11, mem])
+        self._send_command([12, la1])
+        self._send_command([13, la5])
+        self._send_command([14, la15])
 
     def _send_command(self, items):
         items = list(items) + [0] * (9 - len(items))

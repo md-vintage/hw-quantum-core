@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#define DEVICE_NAME "org.liksys.md.hardware.quantum-core"
+
 #define CPU_PIN 11
 #define MEM_PIN 10
 #define LA1_PIN 5
@@ -35,12 +37,12 @@ void displayAverage(int pin, int max_pin, unsigned char avg) {
 
 bool processCommand(const unsigned char *cmd) {
 	switch(cmd[0]) {
-		case 0: Serial.println("quantum-core"); return false;
-		case 1: displayPercent(CPU_PIN, cmd[1]); return true;
-		case 2: displayPercent(MEM_PIN, cmd[1]); return true;
-		case 3: displayAverage(LA1_PIN, MAX_LA1_PIN, cmd[1]); return true;
-		case 4: displayAverage(LA5_PIN, MAX_LA5_PIN, cmd[1]); return true;
-		case 5: displayAverage(LA15_PIN, MAX_LA15_PIN, cmd[1]); return true;
+		case 0:  Serial.println(DEVICE_NAME); return false;
+		case 10: displayPercent(CPU_PIN, cmd[1]); return true;
+		case 11: displayPercent(MEM_PIN, cmd[1]); return true;
+		case 12: displayAverage(LA1_PIN, MAX_LA1_PIN, cmd[1]); return true;
+		case 13: displayAverage(LA5_PIN, MAX_LA5_PIN, cmd[1]); return true;
+		case 14: displayAverage(LA15_PIN, MAX_LA15_PIN, cmd[1]); return true;
 		default: break;
 	}
 	return false;
