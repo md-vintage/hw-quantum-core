@@ -20,8 +20,11 @@
 
 
 #include <Arduino.h>
+#include <EEPROM.h>
 
-#define DEVICE_NAME "org.liksys.md.hardware.quantum-core"
+#ifndef DEVICE_NAME
+# define DEVICE_NAME "org.liksys.md.hardware.quantum-core"
+#endif
 
 #define CPU_PIN 11
 #define MEM_PIN 10
@@ -37,6 +40,21 @@
 #define SERIAL_SPEED 115200
 #define MAX_NO_DATA  5000
 
+
+void commandPrintSerialNumber() {
+	char buf[9];
+	for (int address = 0; address < 8; address++) {
+		buf[address] = EEPROM.read(address);
+	}
+	buf[8] = '\0';
+	Serial.println(buf);
+}
+
+void commandSetSerialNumber(const unsigned char *cmd) {
+	for (int address = 0; address < 8; address++) {
+		EEPROM.write(address, cmd[address + 1]);
+	}
+}
 
 inline float fmap(float x, float in_min, float in_max, float out_min, float out_max) {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -59,6 +77,8 @@ void displayAverage(int pin, int max_pin, unsigned char avg) {
 bool processCommand(const unsigned char *cmd) {
 	switch(cmd[0]) {
 		case 0:  Serial.println(DEVICE_NAME); return false;
+		case 1:  commandPrintSerialNumber(); return false;
+		case 2:  commandSetSerialNumber(cmd); return false;
 		case 10: displayPercent(CPU_PIN, cmd[1]); return true;
 		case 11: displayPercent(MEM_PIN, cmd[1]); return true;
 		case 12: displayAverage(LA1_PIN, MAX_LA1_PIN, cmd[1]); return true;

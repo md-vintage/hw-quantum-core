@@ -61,12 +61,20 @@ class QuantumCore:
         import serial
         self._tty = serial.Serial(device, 115200)
 
-    def send(self, cpu, mem, la1, la5, la15):
+    def send_values(self, cpu, mem, la1, la5, la15):
         self._send_command([10, cpu])
         self._send_command([11, mem])
         self._send_command([12, la1])
         self._send_command([13, la5])
         self._send_command([14, la15])
+
+    def get_serial_number(self):
+        self._send_command([1])
+        return self._tty.readline().decode().strip()
+
+    def set_serial_number(self, line):
+        assert len(line) == 8
+        self._tty.write(("\x02" + line).encode())
 
     def _send_command(self, items):
         items = list(items) + [0] * (9 - len(items))
@@ -78,11 +86,21 @@ class QuantumCore:
 
 # =====
 @argh.arg("--device", default="/dev/ttyACM0")
+def get_serial_number(device=None):
+    return QuantumCore(device).get_serial_number()
+
+
+@argh.arg("--device", default="/dev/ttyACM0")
+def set_serial_number(line, device=None):
+    return QuantumCore(device).set_serial_number(line)
+
+
+@argh.arg("--device", default="/dev/ttyACM0")
 @argh.arg("--interval", default=1, type=int)
 def run_local(device=None, interval=None):
     qc = QuantumCore(device)
     while True:
-        qc.send(**get_local_stat())
+        qc.send_values(**get_local_stat())
         time.sleep(interval)
 
 
@@ -101,7 +119,7 @@ def run_remote(url=None, device=None, interval=None):
             raise
         if str(response.status_code)[0] != "5":  # 5xx
             response.raise_for_status()
-        qc.send(**response.json())
+        qc.send_values(**response.json())
         time.sleep(interval)
 
 
@@ -121,8 +139,10 @@ def run_server(port=None):
 
 
 def main():
-    parser = argh.ArghParser(description="Quantum Core -- hardware monitoring")
+    parser = argh.ArghParser(description="Quantum Core -- hardware metrics display")
     parser.add_commands((
+        get_serial_number,
+        set_serial_number,
         run_local,
         run_remote,
         run_server,
